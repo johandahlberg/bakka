@@ -69,15 +69,14 @@ case class FlagstatResultContainer(total: (Long, Long) = (0, 0),
 
 object Bakka extends App {
 
-    val testFile = new File("/home/dahljo/Desktop/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam")
-    runApp(4, testFile)
+    val testFile = new File("/local/data/gatk_bundle/b37/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam")
+    runApp(8, testFile)
 
     def runApp(nrOfWorkers: Int, file: File) {
-        // Create an Akka system
-        val system = ActorSystem("BamSystem")
 
-        // create the result listener, which will print the result and shutdown the system
-        val listener = system.actorOf(Props[Listener], name = "listener")
+        /**
+         * Code for trying out different functions
+         */
 
         def countRecords(rec: SAMRecord): ResultContainer = {
             //rec.getBaseQualityString().length
@@ -89,29 +88,29 @@ object Bakka extends App {
          * Function to replicate samtools flagstat
          */
         def flagstat(rec: SAMRecord): ResultContainer = {
-            
-            if(rec == null)
+
+            if (rec == null)
                 FlagstatResultContainer()
 
             val failsVendorQualCheck: Boolean = rec.getReadFailsVendorQualityCheckFlag()
-            def checkFlags(flag: Boolean): (Long, Long) ={ 
-                if(flag && !failsVendorQualCheck)
-                       (1,0)
+            def checkFlags(flag: Boolean): (Long, Long) = {
+                if (flag && !failsVendorQualCheck)
+                    (1, 0)
                 else if (flag && failsVendorQualCheck)
-                    (0,1)
+                    (0, 1)
                 else
-                    (0,0)           
+                    (0, 0)
             }
-             
+
             val records = checkFlags(true)
-            val duplicate =  checkFlags(rec.getDuplicateReadFlag())
-            val mapped =  checkFlags(!rec.getReadUnmappedFlag())
+            val duplicate = checkFlags(rec.getDuplicateReadFlag())
+            val mapped = checkFlags(!rec.getReadUnmappedFlag())
             val paired = checkFlags(rec.getReadPairedFlag())
-            val read1 =  checkFlags(rec.getFirstOfPairFlag())
-            val read2 =  checkFlags(rec.getSecondOfPairFlag())
-            val properlyPaired =  checkFlags(rec.getProperPairFlag())
-            val withIfSelfAndMateMapped =  checkFlags(!rec.getReadUnmappedFlag() && !rec.getMateUnmappedFlag())
-            val singelton =  checkFlags(!rec.getReadUnmappedFlag() && rec.getMateUnmappedFlag())
+            val read1 = checkFlags(rec.getFirstOfPairFlag())
+            val read2 = checkFlags(rec.getSecondOfPairFlag())
+            val properlyPaired = checkFlags(rec.getProperPairFlag())
+            val withIfSelfAndMateMapped = checkFlags(!rec.getReadUnmappedFlag() && !rec.getMateUnmappedFlag())
+            val singelton = checkFlags(!rec.getReadUnmappedFlag() && rec.getMateUnmappedFlag())
             def mateOnOtherChromosome = !rec.getMateUnmappedFlag() && rec.getMateReferenceName() != null && rec.getMateReferenceName() != rec.getReferenceName()
             val mateMappedOnDifferentChromosome = checkFlags(mateOnOtherChromosome)
             val mateMappedOnDifferentChromosomeWithHigmMapQ = checkFlags(mateOnOtherChromosome && rec.getMappingQuality() != 255 && rec.getMappingQuality() >= 5)
@@ -122,6 +121,16 @@ object Bakka extends App {
         // Result accumulation initializer
         // Default values in FlagstatResultContainer sets all values to 0
         val init = new FlagstatResultContainer()
+
+        /**
+         * Code for running the actors system
+         */
+
+        // Create an Akka system
+        val system = ActorSystem("BamSystem")
+
+        // create the result listener, which will print the result and shutdown the system
+        val listener = system.actorOf(Props[Listener], name = "listener")
 
         // create the master
         val master = system.actorOf(Props(new Master[FlagstatResultContainer](file, nrOfWorkers, listener, init, flagstat)),
