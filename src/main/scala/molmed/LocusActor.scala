@@ -9,10 +9,12 @@ import akka.util.Duration
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord
 import molmed.functions.ResultContainer
-import molmed.functions.BakkaReadFunction
+import molmed.functions.BakkaLocusFunction
 import molmed.Messages._
+import molmed.functions.CountReads.IntResultContainer
+import net.sf.picard.util.SamLocusIterator
 
-class ReadActor(file: File, nrOfWorkers: Int, bakkaFunction: BakkaReadFunction) {
+class LocusActor(bamFile: File, nrOfWorkers: Int, bakkaFunction: BakkaLocusFunction) {
 
     // Create an Akka system
     val system = ActorSystem("BamSystem")
@@ -24,37 +26,28 @@ class ReadActor(file: File, nrOfWorkers: Int, bakkaFunction: BakkaReadFunction) 
     val function = bakkaFunction.function
 
     // create the master
-    val master = system.actorOf(Props(new Master[ResultContainer](file, nrOfWorkers, listener, init, function)),
+    val master = system.actorOf(Props(new Master[ResultContainer](bamFile, nrOfWorkers, listener, init, function)),
         name = "master")
 
-    /**
-     * Start the actor system
-     */
     def run(): Unit = {
         // start the calculation
         master ! Parse()
     }
 
-    class Worker[T](function: SAMRecord => ResultContainer) extends Actor {
+    class Worker[T](function: SamLocusIterator.LocusInfo => ResultContainer) extends Actor {
 
         def receive = {
-            case ReadWork(recordBuffer) ⇒
-                try {
-                    for (rec <- recordBuffer) {
-                        val res = function(rec) // perform the work
-                        sender ! Result(res)
-                    }
-                } catch {
-                    case e: Exception => sender ! Error(e)
-                }
+            case LocusWork(locusInfo) ⇒
+                println("Worker recived LocusWork")
+                sender ! Result(function(locusInfo))
         }
     }
 
-    class Master[T](file: File, nrOfWorkers: Int, listener: ActorRef, initializer: ResultContainer, function: SAMRecord => ResultContainer)
+    class Master[T](file: File, nrOfWorkers: Int, listener: ActorRef, initializer: ResultContainer, function: SamLocusIterator.LocusInfo => ResultContainer)
         extends Actor {
 
-        var nbrOfRecordsToProcess: Int = -1
-        var recordsProcessed: Int = 0
+        var nbrOfLociToProcess: Int = -1
+        var lociProcessed: Int = 0
         var result: ResultContainer = initializer
         val start: Long = System.currentTimeMillis
 
@@ -62,25 +55,34 @@ class ReadActor(file: File, nrOfWorkers: Int, bakkaFunction: BakkaReadFunction) 
             Props(new Worker[T](function)).withRouter(RoundRobinRouter(nrOfWorkers - 1)), name = "workerRouter")
 
         val readRouter = context.actorOf(
-            Props[ReadReader].withRouter(RoundRobinRouter(1)), name = "readRouter")
+            Props[LocusReader].withRouter(RoundRobinRouter(1)), name = "readRouter")
 
         def receive = {
             case Parse() =>
+                println("Parse message")
                 readRouter ! Read(file)
 
-            case SAMRecordBufferWrapper(rec) =>
-                workerRouter ! ReadWork(rec)
+            case LocusInfoWrapper(locusInfo) =>
+                println("LocusInfoWrapper message")
+                workerRouter ! LocusWork(locusInfo)
 
             case Result(value) => {
+                println("Result message")
                 result += value
-                recordsProcessed += 1
+                lociProcessed += 1
                 if (isRunFinished) self ! RunFinished()
             }
             case FinisedReading(nbrOfRecords) =>
-                this.nbrOfRecordsToProcess = nbrOfRecords
+                println("FinishedReading message")
+                this.nbrOfLociToProcess = nbrOfRecords
+                println("nbrOfLociToProcess = " + this.nbrOfLociToProcess)
+                println("lociProcessed = " + this.lociProcessed)
                 if (isRunFinished) self ! RunFinished()
 
             case RunFinished() =>
+                println("FinishedReading message")
+                println("nbrOfLociToProcess = " + this.nbrOfLociToProcess)
+                println("lociProcessed = " + this.lociProcessed)
                 // Send the result to the listener
                 listener ! FinalResult(result, duration = (System.currentTimeMillis - start).millis)
                 // Stops this actor and all its supervised children
@@ -90,8 +92,8 @@ class ReadActor(file: File, nrOfWorkers: Int, bakkaFunction: BakkaReadFunction) 
 
         }
 
-        def isRunFinished: Boolean = nbrOfRecordsToProcess != -1 && recordsProcessed == nbrOfRecordsToProcess
+        def isRunFinished: Boolean = nbrOfLociToProcess != -1 && lociProcessed == nbrOfLociToProcess
 
     }
-}
 
+}

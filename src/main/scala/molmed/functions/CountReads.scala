@@ -3,7 +3,7 @@ package molmed.functions
 import net.sf.samtools.SAMRecord
 import scala.collection.JavaConversions._
 
-object countReads extends BakkaFunction {
+object CountReads extends BakkaReadFunction {
 
     def function = countRecords
     def init = new IntResultContainer(0)

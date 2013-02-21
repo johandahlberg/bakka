@@ -3,7 +3,7 @@ package molmed.functions
 import net.sf.samtools.SAMRecord
 import scala.collection.JavaConversions._
 
-object Flagstat extends BakkaFunction{
+object Flagstat extends BakkaReadFunction{
 
     def function = flagstat
     def init = new FlagstatResultContainer

@@ -13,6 +13,7 @@ import molmed.Messages._
 class Listener extends Actor {
     def receive = {
         case FinalResult(value, duration) ⇒
+            println("Listener recived FinalResult message")
             println(value)
             println("Runtime: %s"
                 .format(duration))

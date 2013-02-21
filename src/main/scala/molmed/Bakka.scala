@@ -9,20 +9,29 @@ import scala.collection.JavaConversions._
 
 object Bakka extends App {
 
-    val testFile = new File("/local/data/gatk_bundle/b37/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam")
+    val testFile = new File("/home/MOLMED/dahljo/workspace/gatk/public/testdata/exampleBAM.bam")
     val nrOfWorkers = 8
 
-    import molmed.functions.Flagstat._
-    val flagstat = Flagstat
+//    import molmed.functions.Flagstat._
+//    val flagstat = Flagstat
 
-    runActors(testFile, nrOfWorkers, flagstat)
+//    runActors(testFile, nrOfWorkers, flagstat)
+    
+    //import molmed.functions.CountReads._
+    //val countReads = CountReads
+    
+    import molmed.functions.CountLoci._
+    val countLoci = CountLoci
+
+    runActors(testFile, nrOfWorkers, countLoci)
 
     /**
      * Running the actors system
      */
 
     def runActors(file: File, nrOfWorkers: Int, bakkaFunction: BakkaFunction) = {
-        val actor = new ReadActor(file, nrOfWorkers, bakkaFunction)
+        //val actor = new ReadActor(file, nrOfWorkers, bakkaFunction)
+        val actor = new LocusActor(file, nrOfWorkers, bakkaFunction.asInstanceOf[BakkaLocusFunction])
         actor.run()
     }
 }
