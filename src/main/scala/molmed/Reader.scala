@@ -9,6 +9,7 @@ import akka.util.duration._
 import akka.util.Duration
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord
+import molmed.Messages._
 
 trait Reader extends Actor {
 
