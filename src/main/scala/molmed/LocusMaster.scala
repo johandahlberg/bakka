@@ -20,9 +20,16 @@ class LocusMaster(file: File, nrOfWorkers: Int, listener: ActorRef, initializer:
     val workerRouter = context.actorOf(
         Props(new LocusWorker(function)).withRouter(RoundRobinRouter(nrOfWorkers - 1)), name = "workerRouter")
 
+    val readRouter = context.actorOf(
+        Props[LocusReader].withRouter(RoundRobinRouter(1)), name = "readRouter")
+
     def receive() = commonReceive orElse {
+        
+        case Parse() =>
+            readRouter ! Read(file)
+
         case LocusInfoWrapper(locusInfo) =>
-            workerRouter ! LocusWork(locusInfo)        
+            workerRouter ! LocusWork(locusInfo)
     }
 
 }

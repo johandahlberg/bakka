@@ -12,14 +12,14 @@ object Bakka extends App {
     val testFile = new File("/home/MOLMED/dahljo/workspace/gatk/public/testdata/exampleBAM.bam")
     val nrOfWorkers = 8
 
-//    import molmed.functions.Flagstat._
-//    val flagstat = Flagstat
+    import molmed.functions.Flagstat._
+    val flagstat = Flagstat
 
-//    runActors(testFile, nrOfWorkers, flagstat)
-    
+    //    runActors(testFile, nrOfWorkers, flagstat)
+
     //import molmed.functions.CountReads._
     //val countReads = CountReads
-    
+
     import molmed.functions.CountLoci._
     val countLoci = CountLoci
 
@@ -31,7 +31,12 @@ object Bakka extends App {
 
     def runActors(file: File, nrOfWorkers: Int, bakkaFunction: BakkaFunction) = {
         //val actor = new ReadActor(file, nrOfWorkers, bakkaFunction)
-        val actor = new LocusActor(file, nrOfWorkers, bakkaFunction.asInstanceOf[BakkaLocusFunction])
-        actor.run()
+        println("Running LocusActor")
+        val locusActor = new LocusActor(file, nrOfWorkers, bakkaFunction.asInstanceOf[BakkaLocusFunction])
+        locusActor.run()
+
+        println("Running ReadActor")
+        val readActor = new ReadActor(file, nrOfWorkers, flagstat.asInstanceOf[BakkaReadFunction])
+        readActor.run()
     }
 }

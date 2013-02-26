@@ -16,24 +16,19 @@ import net.sf.picard.util.SamLocusIterator
 
 abstract class Master(file: File, nrOfWorkers: Int, listener: ActorRef, initializer: ResultContainer) extends Actor {
 
-    val readRouter = context.actorOf(
-        Props[LocusReader].withRouter(RoundRobinRouter(1)), name = "readRouter")
-
     // Records is used in the widest terms of the word here and might be reads loci, etc depending on the 
     // implementing Master type 
     var nbrOfRecordsToProcess: Int = -1
     var recordsProcessed: Int = 0
     var result: ResultContainer = initializer
     val start: Long = System.currentTimeMillis
-
+    
     def isRunFinished: Boolean = nbrOfRecordsToProcess != -1 && recordsProcessed == nbrOfRecordsToProcess
 
     /**
      * Used along with the implementation classes to provied common methods, such as reading a file
      */
     def commonReceive: PartialFunction[Any, Unit] = {
-        case Parse() =>
-            readRouter ! Read(file)
 
         case Result(value) => {
             result += value

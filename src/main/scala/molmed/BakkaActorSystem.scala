@@ -11,11 +11,16 @@ import net.sf.samtools.SAMRecord
 import molmed.Messages._
 import molmed.functions.BakkaFunction
 
-class BakkaActorSystem(bamFile: File, nrOfWorkers: Int, bakkaFunction: BakkaFunction) {
+trait ActorSystem {
+    def run(): Unit
+}
+
+abstract class BakkaActorSystem(bamFile: File, nrOfWorkers: Int, bakkaFunction: BakkaFunction) extends ActorSystem{
     
     // Create an Akka system
     val system = ActorSystem("BamSystem")
 
     // create the result listener, which will print the result and shutdown the system
     val listener = system.actorOf(Props[Listener], name = "listener")    
+       
 }
