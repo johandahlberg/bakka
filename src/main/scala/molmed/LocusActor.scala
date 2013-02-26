@@ -38,7 +38,6 @@ class LocusActor(bamFile: File, nrOfWorkers: Int, bakkaFunction: BakkaLocusFunct
 
         def receive = {
             case LocusWork(locusInfo) ⇒
-                println("Worker recived LocusWork")
                 sender ! Result(function(locusInfo))
         }
     }
@@ -59,30 +58,21 @@ class LocusActor(bamFile: File, nrOfWorkers: Int, bakkaFunction: BakkaLocusFunct
 
         def receive = {
             case Parse() =>
-                println("Parse message")
                 readRouter ! Read(file)
 
             case LocusInfoWrapper(locusInfo) =>
-                println("LocusInfoWrapper message")
                 workerRouter ! LocusWork(locusInfo)
 
             case Result(value) => {
-                println("Result message")
                 result += value
                 lociProcessed += 1
                 if (isRunFinished) self ! RunFinished()
             }
             case FinisedReading(nbrOfRecords) =>
-                println("FinishedReading message")
                 this.nbrOfLociToProcess = nbrOfRecords
-                println("nbrOfLociToProcess = " + this.nbrOfLociToProcess)
-                println("lociProcessed = " + this.lociProcessed)
                 if (isRunFinished) self ! RunFinished()
 
             case RunFinished() =>
-                println("FinishedReading message")
-                println("nbrOfLociToProcess = " + this.nbrOfLociToProcess)
-                println("lociProcessed = " + this.lociProcessed)
                 // Send the result to the listener
                 listener ! FinalResult(result, duration = (System.currentTimeMillis - start).millis)
                 // Stops this actor and all its supervised children

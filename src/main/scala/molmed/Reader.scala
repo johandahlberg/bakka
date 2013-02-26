@@ -66,11 +66,8 @@ class LocusReader extends Reader {
         samLocusIterator.setEmitUncoveredLoci(false)
         val iterator = samLocusIterator.iterator()
         try {
-            //TODO There is some issue in this loop which makes the iterator skip
-            // every second position. Find out why.
             for (locus <- iterator) {
                 nbrOfLoci += 1
-                println("pos: " + locus.getSequenceName() + ":" + locus.getPosition())
                 sender ! LocusInfoWrapper(locus)
             }
         }
