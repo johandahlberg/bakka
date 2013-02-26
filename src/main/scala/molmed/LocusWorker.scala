@@ -17,7 +17,13 @@ import net.sf.picard.util.SamLocusIterator
 class LocusWorker(function: SamLocusIterator.LocusInfo => ResultContainer) extends Actor {
 
     def receive = {
-        case LocusWork(locusInfo) ⇒
-            sender ! Result(function(locusInfo))
+        case LocusWork(locusInfo) ⇒ {
+            try {
+                sender ! Result(function(locusInfo))
+            } catch {
+                case e: Exception => sender ! Error(e)
+            }
+        }
+
     }
 }
