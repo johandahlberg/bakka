@@ -14,7 +14,7 @@ import molmed.Messages._
 import molmed.functions.CountReads.IntResultContainer
 import net.sf.picard.util.SamLocusIterator
 
-abstract class Master(parentSystem: BakkaActorSystem, file: File, nrOfWorkers: Int, listener: ActorRef, initializer: ResultContainer) extends Actor {
+abstract class Master(file: File, nrOfWorkers: Int, listener: ActorRef, initializer: ResultContainer) extends Actor {
 
     // Records is used in the widest terms of the word here and might be reads loci, etc depending on the 
     // implementing Master type 
@@ -48,6 +48,7 @@ abstract class Master(parentSystem: BakkaActorSystem, file: File, nrOfWorkers: I
 
         case Error(e) => {
             listener ! Error(e)
+            context.stop(self)
         }      
     }
 
