@@ -10,7 +10,7 @@ import net.sf.picard.util.SamLocusIterator
 
 object Messages {
     
-    sealed trait BamMessage
+    sealed trait BamMessage    
     case class Parse() extends BamMessage
     case class ReadWork(recordBuffer: Array[SAMRecord]) extends BamMessage
     case class LocusWork(locusInfo: SamLocusIterator.LocusInfo) extends BamMessage

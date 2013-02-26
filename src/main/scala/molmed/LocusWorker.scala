@@ -14,17 +14,10 @@ import molmed.Messages._
 import molmed.functions.CountReads.IntResultContainer
 import net.sf.picard.util.SamLocusIterator
 
-class LocusActor(bamFile: File, nrOfWorkers: Int, bakkaFunction: BakkaLocusFunction) extends BakkaActorSystem(bamFile, nrOfWorkers, bakkaFunction) {
+class LocusWorker(function: SamLocusIterator.LocusInfo => ResultContainer) extends Actor {
 
-    val init = bakkaFunction.init
-    val function = bakkaFunction.function
-
-    // create the master
-    val master = system.actorOf(Props(new LocusMaster(bamFile, nrOfWorkers, listener, init, function)),
-        name = "master")
-
-    def run(): Unit = {
-        // start the calculation
-        master ! Parse()
+    def receive = {
+        case LocusWork(locusInfo) ⇒
+            sender ! Result(function(locusInfo))
     }
 }
