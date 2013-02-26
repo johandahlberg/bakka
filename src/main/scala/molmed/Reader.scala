@@ -10,8 +10,21 @@ import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord
 import molmed.Messages._
 import net.sf.picard.util.SamLocusIterator
+import net.sf.samtools.SAMFileHeader.SortOrder
+import net.sf.samtools.SAMFileHeader
 
 trait Reader extends Actor {
+
+    def assertSortOrder(bamFileHeader: SAMFileHeader, sortOrder: SortOrder): Boolean = {
+        val actual = bamFileHeader.getSortOrder()
+        if (actual.equals(sortOrder)) {
+            true
+        } else {
+            sender ! Error(new Exception("Wrong sort order, required: " + sortOrder.toString() + " found: " + actual))
+            false
+        }
+
+    }
 
     def readFile(file: File): Unit
 
@@ -61,17 +74,19 @@ class LocusReader extends Reader {
         var nbrOfLoci = 0
         // False, makes sure there's decoding here. Better that the read is decoded when used.
         val fileReader = new SAMFileReader(bamFile, false);
-
-        val samLocusIterator: SamLocusIterator = new SamLocusIterator(fileReader)
-        samLocusIterator.setEmitUncoveredLoci(false)
-        val iterator = samLocusIterator.iterator()
-        try {
-            for (locus <- iterator) {
-                nbrOfLoci += 1
-                sender ! LocusInfoWrapper(locus)
+        val bamHeader = fileReader.getFileHeader()
+        if (assertSortOrder(bamHeader, SortOrder.coordinate)) {
+            val samLocusIterator: SamLocusIterator = new SamLocusIterator(fileReader)
+            samLocusIterator.setEmitUncoveredLoci(false)
+            val iterator = samLocusIterator.iterator()
+            try {
+                for (locus <- iterator) {
+                    nbrOfLoci += 1
+                    sender ! LocusInfoWrapper(locus)
+                }
             }
+            sender ! FinisedReading(nbrOfLoci)
         }
-        sender ! FinisedReading(nbrOfLoci)
     }
 
 }
