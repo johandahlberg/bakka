@@ -63,6 +63,7 @@ class LocusReader extends Reader {
         val fileReader = new SAMFileReader(bamFile, false);
 
         val samLocusIterator: SamLocusIterator = new SamLocusIterator(fileReader)
+        samLocusIterator.setEmitUncoveredLoci(false)
         val iterator = samLocusIterator.iterator()
         try {
             //TODO There is some issue in this loop which makes the iterator skip
