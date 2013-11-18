@@ -3,6 +3,8 @@ bakka
 
 akka + bams = bakka
 
+Playing with combining akka with parsing bam files, implementing a map/reduce functionality.
+
 Quick run instructions
 ----------------------
 Basic setup of bakka requires two steps:
